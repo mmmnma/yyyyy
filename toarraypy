@@ -1,0 +1,6 @@
+from sklearn.feature_extraction.text import TfidfVectorizer
+corpus = ["私は AI が 好き です" , "AI プログラミング は 楽しい です"]
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(corpus)
+print(vectorizer.get_feature_names_out())
+print(X.toarray())

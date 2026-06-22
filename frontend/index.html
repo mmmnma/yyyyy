@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>感情分析 | テキスト解析ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <p class="eyebrow">SENTIMENT_ANALYZER // v1.0</p>
+  <h1>テキストの感情を解析する</h1>
+  <p class="lede">日本語の文章を入力すると、ポジティブかネガティブかをモデルが判定します。</p>
+
+  <div class="card">
+    <label for="text-input">分析するテキスト</label>
+    <textarea
+      id="text-input"
+      placeholder="例: とても良かったです"
+      maxlength="500"
+    ></textarea>
+    <div class="char-count"><span id="char-count">0</span> / 500</div>
+
+    <button class="analyze-btn" id="analyze-btn">分析する</button>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div class="result" id="result">
+      <div class="result-label-row">
+        <span class="sentiment-tag" id="sentiment-tag">—</span>
+        <span class="confidence-pct" id="confidence-pct"></span>
+      </div>
+
+      <div class="bars">
+        <div class="bar-row">
+          <span class="bar-name">POSITIVE</span>
+          <div class="bar-track"><div class="bar-fill positive" id="bar-positive"></div></div>
+          <span class="bar-value" id="val-positive">0%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-name">NEGATIVE</span>
+          <div class="bar-track"><div class="bar-fill negative" id="bar-negative"></div></div>
+          <span class="bar-value" id="val-negative">0%</span>
+        </div>
+      </div>
+
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    API: <input type="text" id="api-base" value="http://127.0.0.1:8000" spellcheck="false">
+  </p>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
