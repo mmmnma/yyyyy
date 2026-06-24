@@ -1,15 +1,6 @@
+
 """
 感情分析推論API
-
-models/ ディレクトリに保存された joblib モデル（ロジスティック回帰）と
-TF-IDFベクトライザーを読み込み、テキストの感情（ポジティブ/ネガティブ）を
-予測するエンドポイントを提供する。
-
-起動方法:
-    uvicorn api.main:app --reload
-
-動作確認:
-    http://127.0.0.1:8000/docs にアクセスすると Swagger UI が開く
 """
 
 from contextlib import asynccontextmanager
@@ -18,30 +9,28 @@ from pathlib import Path
 import joblib
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from janome.tokenizer import Tokenizer
 from pydantic import BaseModel, Field
 
-# プロジェクト直下からの相対パスでモデルを参照する
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "logistic_regression_model.joblib"
 VECTORIZER_PATH = BASE_DIR / "models" / "tfidf_vectorizer.joblib"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
-# モデルとベクトライザー、トークナイザーを保持するための簡易コンテナ
 ml_models = {}
 
 
 def tokenize(text: str) -> str:
-    """日本語テキストをJanomeで分かち書きする"""
     return " ".join(ml_models["tokenizer"].tokenize(text, wakati=True))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """アプリ起動時にモデルを読み込み、終了時に解放するライフサイクル管理"""
     if not MODEL_PATH.exists() or not VECTORIZER_PATH.exists():
         raise RuntimeError(
-            f"モデルファイルが見つかりません: {MODEL_PATH} / {VECTORIZER_PATH}\n"
-            "先に学習スクリプトを実行し、models/ にjoblibファイルを配置してください。"
+            f"モデルファイルが見つかりません: {MODEL_PATH} / {VECTORIZER_PATH}"
         )
 
     ml_models["model"] = joblib.load(MODEL_PATH)
@@ -49,7 +38,7 @@ async def lifespan(app: FastAPI):
     ml_models["tokenizer"] = Tokenizer()
     print("モデルとベクトライザーの読み込みが完了しました")
 
-    yield  # ここでアプリが起動し、リクエストを受け付ける
+    yield
 
     ml_models.clear()
     print("モデルを解放しました")
@@ -61,6 +50,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -69,9 +59,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class PredictRequest(BaseModel):
-    """推論リクエストのスキーマ"""
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
+
+class PredictRequest(BaseModel):
     text: str = Field(
         ...,
         min_length=1,
@@ -82,8 +73,6 @@ class PredictRequest(BaseModel):
 
 
 class PredictResponse(BaseModel):
-    """推論レスポンスのスキーマ"""
-
     text: str = Field(..., description="入力されたテキスト")
     label: int = Field(..., description="予測ラベル (1: ポジティブ, 0: ネガティブ)")
     sentiment: str = Field(..., description="予測ラベルの日本語表記")
@@ -93,17 +82,11 @@ class PredictResponse(BaseModel):
 
 @app.get("/")
 def read_root():
-    """ヘルスチェック用のルートエンドポイント"""
-    return {"status": "ok", "message": "感情分析APIは正常に稼働しています"}
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest) -> PredictResponse:
-    """
-    テキストを受け取り、ポジティブ/ネガティブを予測して返す
-
-    - **text**: 分析したい日本語テキスト
-    """
     model = ml_models.get("model")
     vectorizer = ml_models.get("vectorizer")
 
@@ -123,10 +106,3 @@ def predict(request: PredictRequest) -> PredictResponse:
         negative_proba=round(float(probabilities[0]), 4),
         positive_proba=round(float(probabilities[1]), 4),
     )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
