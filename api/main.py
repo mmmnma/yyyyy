@@ -17,6 +17,7 @@ from pathlib import Path
 
 import joblib
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from janome.tokenizer import Tokenizer
 from pydantic import BaseModel, Field
 
@@ -60,7 +61,13 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PredictRequest(BaseModel):
     """推論リクエストのスキーマ"""
@@ -116,3 +123,10 @@ def predict(request: PredictRequest) -> PredictResponse:
         negative_proba=round(float(probabilities[0]), 4),
         positive_proba=round(float(probabilities[1]), 4),
     )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
